@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Package, Plus, Search, Edit2, Trash2, Star, X, Image as ImageIcon, CheckCircle, ChevronUp, ChevronDown, ArrowUpDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Package, Plus, Search, Edit2, Trash2, Star, X, Image as ImageIcon, CheckCircle, ChevronUp, ChevronDown, ArrowUpDown, Upload, AlertTriangle } from 'lucide-react';
 import { Product, Currency, Category } from '../types';
 import { apiClient } from '../api/client';
 import { formatCurrency } from '../utils/format';
@@ -20,6 +20,7 @@ const AdminProducts: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [sortConfig, setSortConfig] = useState<SortConfig | null>({ key: 'name', direction: 'asc' });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -82,18 +83,28 @@ const AdminProducts: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, image: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate API call
     setLoading(true);
     await new Promise(r => setTimeout(r, 800));
-    
-    // Logic to update local mock would go here in real app
-    // For now we just refresh and close
     await loadData();
     setIsModalOpen(false);
     setLoading(false);
-    alert(editingProduct ? 'Product updated successfully' : 'Product added to inventory');
   };
 
   const processedProducts = useMemo(() => {
@@ -182,56 +193,79 @@ const AdminProducts: React.FC = () => {
                 <tr><td colSpan={6} className="text-center py-20 text-slate-400 font-bold">Synchronizing Archive...</td></tr>
               ) : processedProducts.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-20 text-slate-400 font-bold">No components match your search.</td></tr>
-              ) : processedProducts.map(p => (
-                <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-700">
-                        <img src={p.image} className="w-full h-full object-cover" alt="" />
+              ) : processedProducts.map(p => {
+                const isLowStock = p.stock < 10;
+                return (
+                  <tr key={p.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group ${isLowStock ? 'bg-rose-50/30 dark:bg-rose-950/10' : ''}`}>
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-md border border-slate-100 dark:border-slate-700 relative">
+                          <img src={p.image} className="w-full h-full object-cover" alt="" />
+                          {isLowStock && (
+                            <div className="absolute inset-0 bg-rose-500/10 flex items-center justify-center">
+                              <AlertTriangle className="text-rose-500" size={24} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-slate-900 dark:text-white block tracking-tight">{p.name}</span>
+                            {isLowStock && (
+                              <span className="bg-rose-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Crit</span>
+                            )}
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">SKU: COM-X-{p.id}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="font-black text-slate-900 dark:text-white block tracking-tight">{p.name}</span>
-                        <span className="text-[10px] text-slate-400 font-bold uppercase">SKU: COM-X-{p.id}</span>
+                    </td>
+                    <td className="px-6 py-5">
+                      <span className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-tighter">
+                        {categories.find(c => c.id === p.category)?.name || 'Misc'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 font-black text-slate-900 dark:text-white">
+                      {formatCurrency(p.price, p.currency)}
+                    </td>
+                    <td className="px-6 py-5">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${isLowStock ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'} `}></div>
+                          <span className={`text-sm font-black tracking-tight ${isLowStock ? 'text-rose-600 dark:text-rose-400' : 'dark:text-slate-300'}`}>
+                            {p.stock} Units
+                          </span>
+                        </div>
+                        {isLowStock && (
+                          <div className="flex items-center gap-1 bg-rose-500 text-white px-2 py-0.5 rounded-full w-fit shadow-sm">
+                            <AlertTriangle size={10} />
+                            <span className="text-[8px] font-black uppercase tracking-widest">Low Stock Alert</span>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-tighter">
-                      {categories.find(c => c.id === p.category)?.name || 'Misc'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 font-black text-slate-900 dark:text-white">
-                    {formatCurrency(p.price, p.currency)}
-                  </td>
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${p.stock > 10 ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`}></div>
-                      <span className="text-sm font-black dark:text-slate-300 tracking-tight">{p.stock} Units</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <button 
-                      onClick={() => handleToggleFeatured(p.id)}
-                      className={`p-3 rounded-xl transition-all ${p.featured ? 'text-orange-500 bg-orange-50 dark:bg-orange-500/10 shadow-sm' : 'text-slate-300 hover:text-slate-400'}`}
-                    >
-                      <Star size={20} fill={p.featured ? "currentColor" : "none"} strokeWidth={3} />
-                    </button>
-                  </td>
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </td>
+                    <td className="px-6 py-5">
                       <button 
-                        onClick={() => openModal(p)}
-                        className="p-3 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition-all"
+                        onClick={() => handleToggleFeatured(p.id)}
+                        className={`p-3 rounded-xl transition-all ${p.featured ? 'text-orange-500 bg-orange-50 dark:bg-orange-500/10 shadow-sm' : 'text-slate-300 hover:text-slate-400'}`}
                       >
-                        <Edit2 size={18} />
+                        <Star size={20} fill={p.featured ? "currentColor" : "none"} strokeWidth={3} />
                       </button>
-                      <button className="p-3 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-8 py-5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => openModal(p)}
+                          className="p-3 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl transition-all"
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button className="p-3 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-xl transition-all">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -308,18 +342,36 @@ const AdminProducts: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Image Asset URL</label>
-                <div className="flex gap-4">
-                  <input 
-                    required
-                    value={formData.image}
-                    onChange={e => setFormData({...formData, image: e.target.value})}
-                    type="url" 
-                    placeholder="https://..."
-                    className="flex-1 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-blue-500 rounded-2xl py-4 px-5 outline-none transition-all dark:text-white font-bold"
-                  />
-                  <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700">
-                    {formData.image ? <img src={formData.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Image Asset</label>
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-4">
+                    <input 
+                      value={formData.image}
+                      onChange={e => setFormData({...formData, image: e.target.value})}
+                      type="url" 
+                      placeholder="Or paste direct image URL (https://...)"
+                      className="flex-1 bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-blue-500 rounded-2xl py-4 px-5 outline-none transition-all dark:text-white font-bold"
+                    />
+                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0">
+                      {formData.image ? <img src={formData.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-slate-300" />}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={handleImageUpload}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={triggerFileInput}
+                      className="flex-1 bg-slate-100 dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                    >
+                      <Upload size={18} /> Select Image from Device
+                    </button>
                   </div>
                 </div>
               </div>

@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Heart, ChevronLeft, Star, ShieldCheck, Zap, Truck, RotateCcw, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingCart, Heart, ChevronLeft, Star, ShieldCheck, Zap, Truck, RotateCcw, ChevronRight, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Product, Currency } from '../types';
 import { apiClient } from '../api/client';
 import { formatCurrency } from '../utils/format';
@@ -17,6 +17,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId, onBack, onAd
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -33,6 +34,16 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId, onBack, onAd
     };
     fetchProductData();
   }, [productId]);
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = 340; // Card width + gap approx
+      carouselRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -199,7 +210,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId, onBack, onAd
         </div>
       </div>
 
-      {/* Related Products Section */}
+      {/* Related Products Carousel */}
       {relatedProducts.length > 0 && (
         <section className="space-y-10">
           <div className="flex items-center justify-between">
@@ -207,20 +218,31 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId, onBack, onAd
               <h2 className="text-3xl font-black dark:text-white tracking-tighter">System Compatibilities</h2>
               <p className="text-slate-500 text-sm font-bold mt-1 uppercase tracking-widest">Other parts in this category</p>
             </div>
-            <button 
-              onClick={onBack}
-              className="hidden md:flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest hover:underline"
-            >
-              Explore Category <ChevronRight size={16} />
-            </button>
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => scrollCarousel('left')}
+                className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-500 hover:text-blue-600 hover:border-blue-500 transition-all shadow-sm"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <button 
+                onClick={() => scrollCarousel('right')}
+                className="p-4 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl text-slate-500 hover:text-blue-600 hover:border-blue-500 transition-all shadow-sm"
+              >
+                <ArrowRight size={20} />
+              </button>
+            </div>
           </div>
 
-          <div className="flex gap-8 overflow-x-auto pb-10 scrollbar-hide -mx-2 px-2">
+          <div 
+            ref={carouselRef}
+            className="flex gap-8 overflow-x-auto pb-10 scrollbar-hide -mx-2 px-2 scroll-smooth"
+          >
             {relatedProducts.map((p) => (
               <div 
                 key={p.id}
                 onClick={() => onViewProduct(p.id)}
-                className="min-w-[300px] bg-white dark:bg-slate-900 rounded-[40px] overflow-hidden border border-slate-100 dark:border-slate-800/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group cursor-pointer"
+                className="min-w-[320px] bg-white dark:bg-slate-900 rounded-[40px] overflow-hidden border border-slate-100 dark:border-slate-800/50 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group cursor-pointer"
               >
                 <div className="h-48 overflow-hidden relative">
                   <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" alt={p.name} />

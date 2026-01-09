@@ -12,6 +12,7 @@ import CustomerStorefront from './screens/CustomerStorefront';
 import CustomerCart from './screens/CustomerCart';
 import CustomerOrderHistory from './screens/CustomerOrderHistory';
 import ProductDetails from './screens/ProductDetails';
+import CustomerProfile from './screens/CustomerProfile';
 import Toast, { ToastType } from './components/Toast';
 import { UserRole } from './types';
 
@@ -147,7 +148,16 @@ const App: React.FC = () => {
               />
             )}
             {activeTab === 'my-orders' && (isAuthenticated ? <CustomerOrderHistory /> : <div className="text-center py-20"><p className="text-slate-500 font-bold mb-4">Login to view order history</p><button onClick={() => setShowLogin(true)} className="bg-blue-600 text-white px-8 py-3 rounded-[24px] font-black h-16 flex items-center justify-center mx-auto w-48 shadow-xl shadow-blue-500/20">Sign In</button></div>)}
-            {activeTab === 'my-profile' && (isAuthenticated ? <div className="max-w-xl mx-auto p-12 bg-white dark:bg-slate-900 rounded-[60px] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-blue-500/5 text-center"><div className="w-32 h-32 bg-slate-100 dark:bg-slate-800 rounded-[48px] mx-auto mb-8 flex items-center justify-center text-slate-400 font-black text-4xl shadow-inner">JD</div><h2 className="text-2xl font-black dark:text-white tracking-tighter">Client Identity Valid</h2><p className="text-slate-500 font-medium mt-2">Authenticated via WhatsApp OTP protocol.</p><div className="mt-10 pt-10 border-t border-slate-50 dark:border-slate-800"><button onClick={handleLogout} className="text-rose-500 font-black uppercase text-xs tracking-widest hover:underline">Terminate Session</button></div></div> : <div className="text-center py-20"><p className="text-slate-500 font-bold mb-4">Login to view profile</p><button onClick={() => setShowLogin(true)} className="bg-blue-600 text-white px-8 py-3 rounded-[24px] font-black h-16 flex items-center justify-center mx-auto w-48 shadow-xl shadow-blue-500/20">Sign In</button></div>)}
+            {activeTab === 'my-profile' && (
+              isAuthenticated ? (
+                <CustomerProfile onLogout={handleLogout} showToast={showToast} />
+              ) : (
+                <div className="text-center py-20">
+                  <p className="text-slate-500 font-bold mb-4">Login to view profile</p>
+                  <button onClick={() => setShowLogin(true)} className="bg-blue-600 text-white px-8 py-3 rounded-[24px] font-black h-16 flex items-center justify-center mx-auto w-48 shadow-xl shadow-blue-500/20">Sign In</button>
+                </div>
+              )
+            )}
           </>
         )}
       </Layout>
