@@ -1,0 +1,8 @@
+{
+  "name": "ComXStore - Premium Auto Parts Marketplace",
+  "description": "A high-performance African auto parts e-commerce platform with dynamic admin dashboards, WhatsApp OTP login, and multi-currency Paystack integration.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
